@@ -2,7 +2,7 @@
 
 This project simulates Thomas Schelling's *Dynamic Models of Segregation* using agent-based modeling principles. The primary goal is to explore how simple individual preferences for neighbors of the same type can lead to large-scale patterns of segregation, even in cases where those preferences are not extreme. 
 
-We start with a simple, basic version of the model (Version 1, the "skateboard") and progressively build toward a more complex and context-aware version (the "car"). Along the way, we incorporate additional features, such as richer agent decision-making processes and environmental contexts, using tools like the **Expected Parrot Digital Twin Framework (EDSL)** to simulate agent interactions and qualitative data collection.
+In this repository we start with a simple, basic version of the model (Version 1, the "skateboard") and progressively build toward a more complex and context-aware version (the "car"). Along the way, we incorporate additional features, such as richer agent decision-making processes and environmental contexts, using tools like the **Expected Parrot Digital Twin Framework (EDSL)** to simulate agent interactions and qualitative data collection.
 
 ---
 
