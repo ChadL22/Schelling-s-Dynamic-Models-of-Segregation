@@ -116,5 +116,3 @@ We welcome contributions! To contribute to this project:
 5. Create a pull request.
 
 ---
-
-This setup will help manage the increasing complexity of the project as we move from a simple agent-based model to a more contextually rich simulation with EDSL. Each version builds on the previous one, adding new features and complexity in a structured way.
