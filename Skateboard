@@ -1,0 +1,93 @@
+import random
+
+class Agent:
+    def __init__(self, id, preference, current_location):
+        self.id = id
+        self.preference = preference
+        self.current_location = current_location
+
+    def is_satisfied(self, neighbors):
+        same_type_neighbors = sum(1 for neighbor in neighbors if neighbor.preference == self.preference)
+        if len(neighbors) == 0:  # Handle edge cases with no neighbors
+            return False
+        return same_type_neighbors / len(neighbors) >= self.preference
+
+    def move_to(self, new_location):
+        print(f"Agent {self.id} moving from {self.current_location.x},{self.current_location.y} to {new_location.x},{new_location.y}")
+        self.current_location = new_location
+
+class Location:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.current_agents = []
+
+class Grid:
+    def __init__(self, size):
+        self.size = size
+        self.locations = [[Location(x, y) for y in range(size)] for x in range(size)]
+
+    def get_neighbors(self, location):
+        neighbors = []
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if dx == 0 and dy == 0:
+                    continue
+                nx, ny = location.x + dx, location.y + dy
+                if 0 <= nx < self.size and 0 <= ny < self.size:
+                    neighbors.extend(self.locations[nx][ny].current_agents)
+        return neighbors
+
+    def find_vacant_location(self):
+        vacant_locations = [location for row in self.locations for location in row if not location.current_agents]
+        return random.choice(vacant_locations) if vacant_locations else None
+
+    def print_grid(self):
+        print("\nGrid State:")
+        for row in self.locations:
+            row_str = ""
+            for location in row:
+                if location.current_agents:
+                    row_str += f"{location.current_agents[0].preference:.1f} "
+                else:
+                    row_str += ". "
+            print(row_str)
+        print()
+
+class SegregationModel:
+    def __init__(self, grid_size, num_agents, preference):
+        self.grid = Grid(grid_size)
+        self.agents = [
+            Agent(id=i, preference=random.choice(preference), current_location=self.grid.find_vacant_location())
+            for i in range(num_agents)
+        ]
+        for agent in self.agents:
+            agent.current_location.current_agents.append(agent)
+
+    def run_simulation(self, iterations):
+        for iteration in range(iterations):
+            print(f"Iteration {iteration + 1}")
+            moved = False
+            for agent in self.agents:
+                neighbors = self.grid.get_neighbors(agent.current_location)
+                if not agent.is_satisfied(neighbors):
+                    new_location = self.grid.find_vacant_location()
+                    if new_location:
+                        agent.current_location.current_agents.remove(agent)
+                        new_location.current_agents.append(agent)
+                        agent.move_to(new_location)
+                        moved = True
+            self.grid.print_grid()
+            if not moved:
+                print("No agents moved. Simulation stabilized.")
+                break
+
+    def calculate_segregation(self):
+        segregated_agents = sum(1 for agent in self.agents if agent.is_satisfied(self.grid.get_neighbors(agent.current_location)))
+        return segregated_agents / len(self.agents)
+
+# Example usage
+model = SegregationModel(grid_size=5, num_agents=10, preference=[0.5, 0.7])
+model.run_simulation(iterations=10)
+segregation_index = model.calculate_segregation()
+print(f"Final Segregation Index: {segregation_index:.2f}")
