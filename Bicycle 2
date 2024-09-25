@@ -1,0 +1,166 @@
+# This is Version 4 of this simulation which now includes 50 agents, no explicit tipping point logic, improved visualizations (a larger grid and better movement tracking), and no digital twins.
+
+import random
+import pandas as pd
+
+# Define an agent class, which now includes group membership (e.g., black or white)
+class Agent:
+    def __init__(self, id, group, preference, current_location):
+        """
+        Initialize an Agent with an ID, group (Black/White), preference threshold, and current location.
+        group: The population group the agent belongs to (e.g., 'Black' or 'White').
+        """
+        self.id = id
+        self.group = group  # Assign a group to the agent, either Black or White
+        self.preference = preference  # Threshold for satisfaction with neighborhood composition
+        self.current_location = current_location  # The agent's initial location on the grid
+
+    def calculate_similarity(self, neighbors):
+        """
+        Calculate the proportion of neighbors belonging to the same group as the agent.
+        """
+        same_group_neighbors = sum(1 for neighbor in neighbors if neighbor.group == self.group)
+        if len(neighbors) == 0:  # Handle edge cases with no neighbors
+            return 0  # No neighbors results in no similarity
+        return same_group_neighbors / len(neighbors)
+
+    def is_satisfied(self, neighbors):
+        """
+        Determine if the agent is satisfied with the current neighborhood.
+        Satisfaction is based on whether the proportion of similar-group neighbors meets or exceeds their preference.
+        """
+        return self.calculate_similarity(neighbors) >= self.preference
+
+    def move_to(self, new_location):
+        """
+        Move the agent to a new location on the grid.
+        """
+        self.current_location = new_location
+
+class Location:
+    def __init__(self, x, y):
+        """
+        Initialize a grid location with coordinates (x, y) and a list of current agents.
+        """
+        self.x = x
+        self.y = y
+        self.current_agents = []  # List to hold agents currently occupying this location
+
+class Grid:
+    def __init__(self, size):
+        """
+        Create a grid of the specified size with empty locations.
+        """
+        self.size = size
+        self.locations = [[Location(x, y) for y in range(size)] for x in range(size)]
+
+    def get_neighbors(self, location):
+        """
+        Get all neighboring agents around a given location (within a 3x3 grid centered on the location).
+        """
+        neighbors = []
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if dx == 0 and dy == 0:
+                    continue  # Skip the current location
+                nx, ny = location.x + dx, location.y + dy
+                if 0 <= nx < self.size and 0 <= ny < self.size:  # Ensure we don't go out of bounds
+                    neighbors.extend(self.locations[nx][ny].current_agents)  # Add all agents in the neighbor location
+        return neighbors
+
+    def find_vacant_location(self):
+        """
+        Find a vacant location on the grid where no agents are currently present.
+        """
+        vacant_locations = [location for row in self.locations for location in row if not location.current_agents]
+        return random.choice(vacant_locations) if vacant_locations else None
+
+    def print_grid(self):
+        """
+        Print the current state of the grid, showing the group membership of agents in each location.
+        """
+        grid_state = []
+        for row in self.locations:
+            row_state = []
+            for location in row:
+                if location.current_agents:
+                    row_state.append(location.current_agents[0].group[0])
+                else:
+                    row_state.append(".")
+            grid_state.append(row_state)
+        return grid_state
+
+class SegregationModel:
+    def __init__(self, grid_size, num_agents, group_distribution, preference):
+        """
+        Initialize the segregation model with a grid, a set of agents, and their group distribution.
+        group_distribution: List of group names (e.g., ['Black', 'White']) and how agents are distributed across them.
+        """
+        self.grid = Grid(grid_size)
+        self.agents = [
+            Agent(id=i, group=random.choice(group_distribution), preference=random.choice(preference),
+                  current_location=self.grid.find_vacant_location())
+            for i in range(num_agents)
+        ]
+        for agent in self.agents:
+            agent.current_location.current_agents.append(agent)  # Place agent on the grid
+
+    def run_simulation(self, max_iterations):
+        """
+        Run the segregation simulation for a set number of iterations.
+        In each iteration, agents compare their current neighborhood with potential new locations.
+        """
+        initial_conditions = self.grid.print_grid()
+        moves = 0
+
+        for iteration in range(max_iterations):
+            moved = False  # Track if any agents moved
+            print(f"\nIteration {iteration + 1}:\n")
+            for agent in self.agents:
+                neighbors = self.grid.get_neighbors(agent.current_location)
+                current_similarity = agent.calculate_similarity(neighbors)  # Get the similarity in the current location
+                satisfied = agent.is_satisfied(neighbors)
+                
+                # Display agent information: ID, group, preference, current location, and satisfaction
+                print(f"Agent {agent.id} ({agent.group}) at ({agent.current_location.x},{agent.current_location.y}) "
+                      f"has a preference of {agent.preference} and is {'satisfied' if satisfied else 'not satisfied'}.")
+
+                if not satisfied:  # If not satisfied, check for a better location
+                    new_location = self.grid.find_vacant_location()
+                    if new_location:
+                        new_neighbors = self.grid.get_neighbors(new_location)  # Get similarity in new location
+                        new_similarity = agent.calculate_similarity(new_neighbors)
+                        # Compare current similarity to potential new similarity
+                        if new_similarity > current_similarity:
+                            # Move agent if the new location provides a better similarity
+                            agent.current_location.current_agents.remove(agent)
+                            new_location.current_agents.append(agent)
+                            agent.move_to(new_location)
+                            print(f" -> Agent {agent.id} moved to ({new_location.x},{new_location.y})")
+                            moved = True  # Track that an agent moved
+                            moves += 1
+
+            if not moved:
+                print("No agents moved. Simulation stabilized.")
+                break  # Stop if no agents moved
+
+        final_conditions = self.grid.print_grid()
+        return initial_conditions, final_conditions, moves
+
+# Example usage with 50 people
+model = SegregationModel(grid_size=10, num_agents=50, group_distribution=['Black', 'White'], preference=[0.5, 0.7])
+initial_conditions, final_conditions, moves = model.run_simulation(max_iterations=100)
+
+# Convert grid conditions to DataFrames for better visualization
+initial_df = pd.DataFrame(initial_conditions)
+final_df = pd.DataFrame(final_conditions)
+
+# Display initial and final grid conditions
+print("\nInitial Grid Conditions:")
+print(initial_df)
+
+print("\nFinal Grid Conditions:")
+print(final_df)
+
+# Show number of moves before the system stabilized
+print(f"\nThe system stabilized after {moves} moves.")
