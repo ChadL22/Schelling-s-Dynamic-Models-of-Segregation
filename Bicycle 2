@@ -1,4 +1,5 @@
 # This is Version 4 of this simulation which now includes 50 agents, no explicit tipping point logic, improved visualizations (a larger grid and better movement tracking), and no digital twins.
+# Moving forward, I aim to refine the definition of 'neighborhood.' Currently, it is defined as the individuals directly adjacent to you (either above, below, to the right or left of you).
 
 import random
 import pandas as pd
