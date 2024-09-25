@@ -36,7 +36,7 @@ The repository is organized into multiple folders to reflect the different versi
 │   ├── segregation_model.py  # Python script for Version 1 (basic functionality)
 │   └── README.md             # Description and instructions for Version 1
 │
-├── /version_2_bicycle/       # Enhanced model with improved movement and weighted preferences
+├── /version_2_bicycle/       # Enhanced model with improved movement and preferences
 │   ├── segregation_model.py  # Python script for Version 2
 │   └── README.md             # Description and instructions for Version 2
 │
