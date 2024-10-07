@@ -28,7 +28,34 @@
         
         <pre>
 <code>
-# Paste a snippet of your code here for display, you can also provide a link to the full repository.
+ class Agent:
+    def __init__(self, id, group, preference, current_location):
+        self.id = id
+        self.group = group  
+        self.preference = preference  
+        self.current_location = current_location  
+
+    def calculate_similarity(self, neighbors):
+        same_group_neighbors = sum(1 for neighbor in neighbors if neighbor.group == self.group)
+        return same_group_neighbors / len(neighbors) if neighbors else 0
+
+    def is_satisfied(self, neighbors):
+        return self.calculate_similarity(neighbors) >= self.preference
+
+class SegregationModel:
+    def __init__(self, grid_size, num_agents, group_distribution, preference):
+        self.grid = Grid(grid_size)
+        self.agents = [Agent(id=i, group=random.choice(group_distribution), preference=random.choice(preference),
+                             current_location=self.grid.find_vacant_location()) for i in range(num_agents)]
+
+    def run_simulation(self, max_iterations):
+        for iteration in range(max_iterations):
+            for agent in self.agents:
+                if not agent.is_satisfied(self.grid.get_neighbors(agent.current_location)):
+                    new_location = self.grid.find_vacant_location()
+                    if new_location:
+                        agent.move_to(new_location)
+
 </code>
         </pre>
         
