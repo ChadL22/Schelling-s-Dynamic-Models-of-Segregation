@@ -3,62 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Schelling's Dynamic Models of Segregation</title>
+    <title>Motorcycle Iteration 2: Schelling's Dynamic Models of Segregation</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
-        <h1>Schelling's Dynamic Models of Segregation - Version 4</h1>
+        <h1>Motorcycle Iteration 2: Schelling's Dynamic Models of Segregation</h1>
     </header>
-    
+
     <section>
         <h2>Project Overview</h2>
-        <p>This project simulates Schelling's Dynamic Models of Segregation, now updated to Version 4. The simulation includes:</p>
+        <p>
+            Welcome to <strong>Motorcycle Iteration 2</strong>, the latest iteration of Schelling's Dynamic Models of Segregation. This version includes a range of exciting improvements designed to enhance the realism and complexity of agent-based simulations.
+        </p>
+        <p>
+            This project integrates 50 agents who make decisions based on a variety of demographic factors such as age, salary, career, and household status. Each agent is now paired with a digital twin—a simulated persona that offers a deeper understanding of their motivations and decisions within the simulation. This digital twin provides feedback explaining the agent's actions as they seek neighborhoods that meet their personal preferences.
+        </p>
         <ul>
-            <li>50 agents</li>
-            <li>Improved visualizations (larger grid, better movement tracking)</li>
-            <li>No explicit tipping point logic</li>
-            <li>Updated algorithm for agent movement and satisfaction</li>
+            <li>Digital twin logic: AI-powered personas that explain agents' movement decisions.</li>
+            <li>Demographic profiles: Agents possess unique traits such as age, career, and household composition.</li>
+            <li>Improved visualizations: Larger grids and enhanced movement tracking.</li>
+            <li>No explicit tipping point logic: Emergent behaviors arise organically from agent interactions.</li>
         </ul>
     </section>
 
     <section>
-        <h2>Simulation Code</h2>
-        <p>Below is the core Python code for the segregation model simulation. The code simulates the behavior of agents in a grid and tracks their movements based on neighborhood composition and personal preferences.</p>
-        
+        <h2>Key Features</h2>
+        <p>
+            The goal of Motorcycle Iteration 2 is to explore how individual preferences, in combination with socioeconomic factors, can lead to larger societal patterns of segregation. This version provides new insights into Schelling’s foundational theories by introducing modern computational techniques such as digital twin agents and demographic-driven decision-making.
+        </p>
+        <ul>
+            <li><strong>Demographic Profiles</strong>: Agents now include details such as age, career, salary, and household data, influencing their behavior.</li>
+            <li><strong>Digital Twin Surveys</strong>: Each agent's digital twin provides real-time feedback on their decisions.</li>
+            <li><strong>Simulated Neighborhood Dynamics</strong>: Agents assess their satisfaction with their neighborhood and relocate if unsatisfied.</li>
+            <li><strong>Grid Visualization</strong>: View initial and final grid conditions to visualize the segregation dynamics.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Sample Code Snippet</h2>
+        <p>Below is a snippet of the core logic for agent movement and decision-making in the simulation:</p>
         <pre>
 <code>
- class Agent:
-    def __init__(self, id, group, preference, current_location):
+class Agent:
+    def __init__(self, id, group, preference, current_location, age, salary, career, household_status, household_size):
         self.id = id
         self.group = group  
         self.preference = preference  
         self.current_location = current_location  
-
-    def calculate_similarity(self, neighbors):
-        same_group_neighbors = sum(1 for neighbor in neighbors if neighbor.group == self.group)
-        return same_group_neighbors / len(neighbors) if neighbors else 0
+        self.age = age
+        self.salary = salary
+        self.career = career
+        self.household_status = household_status
+        self.household_size = household_size
 
     def is_satisfied(self, neighbors):
         return self.calculate_similarity(neighbors) >= self.preference
-
-class SegregationModel:
-    def __init__(self, grid_size, num_agents, group_distribution, preference):
-        self.grid = Grid(grid_size)
-        self.agents = [Agent(id=i, group=random.choice(group_distribution), preference=random.choice(preference),
-                             current_location=self.grid.find_vacant_location()) for i in range(num_agents)]
-
-    def run_simulation(self, max_iterations):
-        for iteration in range(max_iterations):
-            for agent in self.agents:
-                if not agent.is_satisfied(self.grid.get_neighbors(agent.current_location)):
-                    new_location = self.grid.find_vacant_location()
-                    if new_location:
-                        agent.move_to(new_location)
-
 </code>
         </pre>
-        
         <p>View the full project on <a href="https://github.com/ChadL22/Schelling-s-Dynamic-Models-of-Segregation" target="_blank">GitHub</a>.</p>
     </section>
 
@@ -70,7 +72,7 @@ class SegregationModel:
     </section>
 
     <footer>
-        <p>&copy; 2024 Schelling Simulation Project</p>
+        <p>&copy; 2024 Motorcycle Iteration 2 Project | Schelling's Dynamic Models of Segregation</p>
     </footer>
 </body>
 </html>
