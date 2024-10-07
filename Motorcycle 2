@@ -1,0 +1,233 @@
+#In this model we have more context for the agent's that inludes income and more
+
+import random
+import pandas as pd
+from edsl import Agent as DigitalTwinAgent, Scenario, Survey, Coop, Notebook
+from edsl.questions import QuestionMultipleChoice, QuestionFreeText
+
+# Define the original Agent class with demographic information
+class Agent:
+    def __init__(self, id, group, preference, current_location, age, salary, career, household_status, household_size):
+        """
+        Initialize an Agent with an ID, group (Black/White), preference threshold, and current location,
+        along with additional demographic information.
+        """
+        self.id = id
+        self.group = group  # Assign a group to the agent, either Black or White
+        self.preference = preference  # Threshold for satisfaction with neighborhood composition
+        self.current_location = current_location  # The agent's initial location on the grid
+        self.age = age
+        self.salary = salary
+        self.career = career
+        self.household_status = household_status
+        self.household_size = household_size
+
+    def calculate_similarity(self, neighbors):
+        """
+        Calculate the proportion of neighbors belonging to the same group as the agent.
+        """
+        same_group_neighbors = sum(1 for neighbor in neighbors if neighbor.group == self.group)
+        if len(neighbors) == 0:  # Handle edge cases with no neighbors
+            return 0  # No neighbors results in no similarity
+        return same_group_neighbors / len(neighbors)
+
+    def is_satisfied(self, neighbors):
+        """
+        Determine if the agent is satisfied with the current neighborhood.
+        Satisfaction is based on whether the proportion of similar-group neighbors meets or exceeds their preference.
+        """
+        return self.calculate_similarity(neighbors) >= self.preference
+
+    def move_to(self, new_location):
+        """
+        Move the agent to a new location on the grid.
+        """
+        self.current_location = new_location
+
+# Extend the Agent class to include the digital twin logic
+class AgentWithDigitalTwin(Agent):
+    def __init__(self, id, group, preference, current_location, age, salary, career, household_status, household_size):
+        super().__init__(id, group, preference, current_location, age, salary, career, household_status, household_size)
+        self.digital_twin = self.create_digital_twin()
+
+    def create_digital_twin(self):
+        # Create a digital twin agent with demographic traits
+        traits = {
+            "persona": f"You are Agent {self.id}, age {self.age}, working as a {self.career}. "
+                       f"You earn ${self.salary} annually and live in a {self.household_status} household "
+                       f"with {self.household_size} individual(s).",
+            "preference": f"Your preference threshold for similar neighbors is {self.preference}.",
+            "current_location": f"Your current location is {self.current_location.x}, {self.current_location.y}.",
+        }
+        return DigitalTwinAgent(name=f"Agent {self.id}", traits=traits)
+
+    def generate_digital_twin_response(self, new_location=None):
+        # Prepare context and content for the digital twin to explain actions
+        context = f"You are moving from location {self.current_location.x}, {self.current_location.y}."
+        if new_location:
+            context += f" Your new location will be {new_location.x}, {new_location.y}."
+        
+        # Create questions for the digital twin to explain its behavior
+        q1 = QuestionFreeText(
+            question_name="reason_for_movement",
+            question_text="Explain why you decided to move to a new location considering your current life situation."
+        )
+        
+        q2 = QuestionMultipleChoice(
+            question_name="preference_description",
+            question_text="How do you feel about your new neighborhood?",
+            question_options=["Satisfied", "Neutral", "Unsatisfied"]
+        )
+
+        # Set up a survey with the questions
+        survey = Survey(questions=[q1, q2])
+        
+        # Create a scenario to contextualize the digital twin's explanation
+        content = [context]
+        scenarios = [Scenario({"content": c}) for c in content]
+
+        # Generate responses based on the digital twin's traits and scenario
+        results = survey.by(scenarios).by(self.digital_twin).run(progress_bar=False)
+
+        # Format the results into a readable format
+        return results.select("reason_for_movement", "preference_description").print(format="rich")
+
+class Location:
+    def __init__(self, x, y):
+        """
+        Initialize a grid location with coordinates (x, y) and a list of current agents.
+        """
+        self.x = x
+        self.y = y
+        self.current_agents = []  # List to hold agents currently occupying this location
+
+class Grid:
+    def __init__(self, size):
+        """
+        Create a grid of the specified size with empty locations.
+        """
+        self.size = size
+        self.locations = [[Location(x, y) for y in range(size)] for x in range(size)]
+
+    def get_neighbors(self, location):
+        """
+        Get all neighboring agents around a given location (within a 3x3 grid centered on the location).
+        """
+        neighbors = []
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if dx == 0 and dy == 0:
+                    continue  # Skip the current location
+                nx, ny = location.x + dx, location.y + dy
+                if 0 <= nx < self.size and 0 <= ny < self.size:  # Ensure we don't go out of bounds
+                    neighbors.extend(self.locations[nx][ny].current_agents)  # Add all agents in the neighbor location
+        return neighbors
+
+    def find_vacant_location(self):
+        """
+        Find a vacant location on the grid where no agents are currently present.
+        """
+        vacant_locations = [location for row in self.locations for location in row if not location.current_agents]
+        return random.choice(vacant_locations) if vacant_locations else None
+
+    def print_grid(self):
+        """
+        Print the current state of the grid, showing the group membership of agents in each location.
+        """
+        grid_state = []
+        for row in self.locations:
+            row_state = []
+            for location in row:
+                if location.current_agents:
+                    row_state.append(location.current_agents[0].group[0])
+                else:
+                    row_state.append(".")
+            grid_state.append(row_state)
+        return grid_state
+
+# Modify the SegregationModel to use agents with digital twins and demographic data
+class SegregationModelWithTwins:
+    def __init__(self, grid_size, num_agents, group_distribution, preference, demographics):
+        # Use the AgentWithDigitalTwin class with demographic data
+        self.grid = Grid(grid_size)
+        self.agents = [
+            AgentWithDigitalTwin(
+                id=i,
+                group=random.choice(group_distribution),
+                preference=random.choice(preference),
+                current_location=self.grid.find_vacant_location(),
+                age=random.randint(demographics['age'][0], demographics['age'][1]),
+                salary=random.randint(demographics['salary'][0], demographics['salary'][1]),
+                career=random.choice(demographics['career']),
+                household_status=random.choice(demographics['household_status']),
+                household_size=random.randint(demographics['household_size'][0], demographics['household_size'][1])
+            )
+            for i in range(num_agents)
+        ]
+        for agent in self.agents:
+            agent.current_location.current_agents.append(agent)
+
+    def run_simulation(self, max_iterations):
+        initial_conditions = self.grid.print_grid()
+        moves = 0
+
+        for iteration in range(max_iterations):
+            moved = False
+            print(f"\nIteration {iteration + 1}:\n")
+            for agent in self.agents:
+                neighbors = self.grid.get_neighbors(agent.current_location)
+                current_similarity = agent.calculate_similarity(neighbors)
+                satisfied = agent.is_satisfied(neighbors)
+
+                print(f"Agent {agent.id} ({agent.group}) at ({agent.current_location.x},{agent.current_location.y}) "
+                      f"has a preference of {agent.preference} and is {'satisfied' if satisfied else 'not satisfied'}.")
+
+                if not satisfied:
+                    new_location = self.grid.find_vacant_location()
+                    if new_location:
+                        new_neighbors = self.grid.get_neighbors(new_location)
+                        new_similarity = agent.calculate_similarity(new_neighbors)
+
+                        if new_similarity > current_similarity:
+                            agent.current_location.current_agents.remove(agent)
+                            new_location.current_agents.append(agent)
+                            agent.move_to(new_location)
+                            print(f" -> Agent {agent.id} moved to ({new_location.x},{new_location.y})")
+
+                            # Generate digital twin response explaining the move
+                            print(f"\nDigital Twin Response for Agent {agent.id}:")
+                            agent.generate_digital_twin_response(new_location=new_location)
+                            
+                            moved = True
+                            moves += 1
+
+            if not moved:
+                print("No agents moved. Simulation stabilized.")
+                break
+
+        final_conditions = self.grid.print_grid()
+        return initial_conditions, final_conditions, moves
+
+# Example usage with demographic ranges and categories
+demographics = {
+    'age': (20, 65),  # Age range from 20 to 65
+    'salary': (30000, 150000),  # Salary range from $30,000 to $150,000
+    'career': ['Engineer', 'Teacher', 'Doctor', 'Artist', 'Programmer'],  # Sample careers
+    'household_status': ['Single', 'Family'],  # Household status
+    'household_size': (1, 5)  # Household size ranging from 1 to 5 individuals
+}
+
+model_with_twins = SegregationModelWithTwins(grid_size=10, num_agents=50, group_distribution=['Black', 'White'], preference=[0.5, 0.7], demographics=demographics)
+initial_conditions, final_conditions, moves = model_with_twins.run_simulation(max_iterations=100)
+
+# Convert grid conditions to DataFrames for better visualization
+initial_df = pd.DataFrame(initial_conditions)
+final_df = pd.DataFrame(final_conditions)
+
+print("\nInitial Grid Conditions:")
+print(initial_df)
+
+print("\nFinal Grid Conditions:")
+print(final_df)
+
+print(f"\nThe system stabilized after {moves} moves.")
